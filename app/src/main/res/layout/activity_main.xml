@@ -9,17 +9,11 @@
     android:baselineAligned="false">
 
     <org.opencv.android.JavaCameraView
-        android:id="@+id/HelloOpenCvView"
+        android:id="@+id/OpenCvView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
         opencv:camera_id="front"
         opencv:show_fps="true" />
-
-    <Button
-        android:id="@+id/button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/calibrar_de_novo" />
 
 </RelativeLayout>

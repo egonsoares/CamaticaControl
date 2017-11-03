@@ -1,4 +1,16 @@
 <resources>
     <string name="app_name">Camatica Control</string>
-    <string name="calibrar_de_novo">Calibrar De Novo</string>
+
+    <string name="title_activity_menu">Camatica Control</string>
+    <string name="calibrar">Calibrar e usar</string>
+    <string name="manual">Colocar calibração manualmente e usar</string>
+    <string name="matiz_min">Matiz Mínima</string>
+    <string name="sat_min">Saturação Mínima</string>
+    <string name="valor_min">Valor Mínimo</string>
+    <string name="matiz_max">Matiz Máxima</string>
+    <string name="sat_max">Saturação Máxima</string>
+    <string name="valor_max">Valor Máximo</string>
+    <string name="parear">Parear Bluetooth</string>
+    <string name="sair">Sair</string>
+
 </resources>

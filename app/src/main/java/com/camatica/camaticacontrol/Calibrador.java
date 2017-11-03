@@ -15,6 +15,8 @@ import org.opencv.imgproc.Moments;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.opencv.core.CvType.CV_8UC4;
+
 /**
  * Criado por Egon Soares em 29/10/2017
  */
@@ -34,6 +36,7 @@ class Calibrador {
     private int tempo = 0; 
     int calib = 0;
     private final int[][] rects = {{15,25,15,25}, {15,25,65,75}, {65,75,15,25}, {65,75,65,75}};
+    private final int[][] quadrantes = {{0,50,0,50}, {50,100,0,50}, {0,50,50,100}, {50,100,50,100}};
     private Scalar lowerB = new Scalar(0,0,0), upperB = new Scalar(255,255,255);
     private double lastScore = 0;
 
@@ -43,34 +46,39 @@ class Calibrador {
         thresh = new Mat();
         mHierarchy = new Mat();
         cropped = new Mat();
-
     }
-    Mat calibrar(Mat input){
+    Mat calibrar(Mat input, Mat inputGray){
         
         // Inverter imagem
         Core.flip(input,inv,1);
+        Core.flip(inputGray,inputGray,1);
 
 
         // Recriar a imagem em HSV
         Imgproc.cvtColor(inv,lowHsv,Imgproc.COLOR_RGB2HSV_FULL);
+        Imgproc.cvtColor(inputGray,inputGray,Imgproc.COLOR_GRAY2RGBA);
         
         //Calibração
             Log.d(TAG,"Calibrar");
 
             //Esperar um tempo
-            if(tempo<30) {
+            if(tempo<90) {
                 tempo++;
                 int h = inv.height(); // Altura da imagem invertida
                 int w = inv.width(); // Largura da imagem invertida
-                Imgproc.putText(inv, "Preencha o quadrado com a cor",
-                        new Point(5 * w / 100, 6 * h / 10),
-                        0, 1, new Scalar(255, 255, 255)); // Título de ordem
+                Imgproc.putText(inputGray, "Preencha o quadrado com a cor",
+                new Point(5 * w / 100, 4 * h / 10),
+                        0, 1.2, Scalar.all(255), 2); // Título de ordem
+                Imgproc.putText(inputGray, "Calibrando em " + ((90-tempo)/30 + 1),
+                        new Point(2 * w / 10, 6 * h / 10),
+                        0, 1.2, Scalar.all(255), 2); // Título de ordem
+                Rect roi = new Rect(new Point(rects[calib][0]*w/100, rects[calib][2]*h/100),
+                        new Point(rects[calib][1]*w/100,rects[calib][3]*h/100));
+                cropped = Mat.zeros(inputGray.size(),CV_8UC4);
+                cropped.submat(roi).setTo(Scalar.all(255));
+                inv.copyTo(inputGray,cropped);
 
-                // Retângulo a ser maximizado
-                Imgproc.rectangle(inv, new Point(rects[calib][0] * w / 100,
-                        rects[calib][2] * h / 100), new Point(rects[calib][1] * w / 100,
-                        rects[calib][3] * h / 100), new Scalar(0, 0, 0), 5);
-                return inv;
+                return inputGray;
             }
             else {
                 //variables
@@ -122,9 +130,6 @@ class Calibrador {
                     double score = 0;
                     for(double d : scoreScalar.val) score += d;
 
-                    Log.d(TAG,"Last Score " + lastScore + " score" + String.valueOf(score));
-                    Log.d(TAG,"lowerB" + lowerB + "upperB" + upperB);
-
                     // Verificar se a pontuação caiu
                     if (lastScore * 0.97 > score || score == 0.0) {
                         if(optElement > 2) {
@@ -140,14 +145,17 @@ class Calibrador {
                         lastScore = score;
                         loops++;
                     }
-                    Log.d(TAG,"There are " + loops + " loops and maximizing" + optElement);
                 }
 
+                double[] aux = colorLower.val;
                 // Copiar valores para os thresholds
-                for(int i = 0; i < 3; i++) colorLower.val[i] = Math.min(lowerB.val[i],
-                        colorLower.val[i]);
-                for(int i = 0; i < 3; i++) colorUpper.val[i] = Math.max(upperB.val[i],
-                        colorUpper.val[i]);
+                for(int i = 0; i < 3; i++) aux[i] = Math.min(lowerB.val[i],
+                        aux[i]);
+                colorLower = new Scalar(aux);
+                aux = colorUpper.val;
+                for(int i = 0; i < 3; i++) aux[i] = Math.max(upperB.val[i],
+                        aux[i]);
+                colorUpper = new Scalar(aux);
                 lowerB = new Scalar(0,0,0);
                 upperB = new Scalar(255,255,255);
                 calib++;
@@ -156,13 +164,15 @@ class Calibrador {
             
         }
     }
-    Mat processar(Mat input) {
+    Mat processar(Mat input, Mat inputGray) {
         // Inverter imagem
         Core.flip(input,inv,1);
+        Core.flip(inputGray,inputGray,1);
 
 
         // Recriar a imagem em HSV
         Imgproc.cvtColor(inv,lowHsv,Imgproc.COLOR_RGB2HSV_FULL);
+        Imgproc.cvtColor(inputGray,inputGray,Imgproc.COLOR_GRAY2RGBA);
         // Processar Threshold
         Core.inRange(lowHsv, colorLower, colorUpper, thresh);
 
@@ -201,7 +211,19 @@ class Calibrador {
                         new Scalar(0,255,255),2);
                 Imgproc.circle(inv, centerPoint, 5, new Scalar(0, 0, 255), -1);
             }
+            int x = 0;
+            int w = inv.width();
+            int h = inv.height();
+            if (centerPoint.x>w/2) x++;
+            if (centerPoint.y>h/2) x+=2;
+            Rect roi = new Rect(new Point(quadrantes[x][0]*w/100, quadrantes[x][2]*h/100),
+                    new Point(quadrantes[x][1]*w/100,quadrantes[x][3]*h/100));
+            cropped = Mat.zeros(inputGray.size(),CV_8UC4);
+            cropped.submat(roi).setTo(Scalar.all(255));
+            inv.copyTo(inputGray,cropped);
         }
-        return inv;
+
+
+        return inputGray;
     }
 }
