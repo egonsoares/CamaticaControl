@@ -33,6 +33,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                 case BaseLoaderCallback.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
+                    mOpenCvCameraView = findViewById(R.id.OpenCvView);
+                    mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+                    mOpenCvCameraView.setCvCameraViewListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
                     mCalibrador.initMats();
                     break;
@@ -69,9 +72,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         setContentView(R.layout.activity_main);
 
-        mOpenCvCameraView = findViewById(R.id.OpenCvView);
-        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-        mOpenCvCameraView.setCvCameraViewListener(this);
+
         Bundle b = getIntent().getExtras();
         if(b != null) {
             if(!b.getBoolean("Calibrar", true)) {
