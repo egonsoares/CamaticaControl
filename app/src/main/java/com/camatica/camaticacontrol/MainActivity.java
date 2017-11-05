@@ -22,9 +22,12 @@ import org.opencv.core.Scalar;
 
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2 {
     private static final String TAG = "MYAPP::OPENCV";
-
+    private boolean startMats = true;
+    int i = 0;
     private final Calibrador mCalibrador = new Calibrador();
     private CameraBridgeViewBase mOpenCvCameraView;
+
+
 
     private final BaseLoaderCallback mCallBack = new BaseLoaderCallback(this) {
         @Override
@@ -32,12 +35,17 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             switch (status){
                 case BaseLoaderCallback.SUCCESS:
                 {
-                    Log.i(TAG, "OpenCV loaded successfully");
+                    Log.i("MYAPPO", "OpenCV loaded successfully");
                     mOpenCvCameraView = findViewById(R.id.OpenCvView);
+                    mOpenCvCameraView.setMaxFrameSize(720,480);
                     mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
                     mOpenCvCameraView.setCvCameraViewListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
-                    mCalibrador.initMats();
+                    if(startMats){
+                        i++;
+                        startMats = false;
+                        Log.d("MYAPPBluetooth", "initMats"+i);
+                    }
                     break;
                 }
                 default:
@@ -48,6 +56,13 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             }
         }
     };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // First check android version
@@ -59,15 +74,13 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         }
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (mBluetoothAdapter != null && !mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, 2);
+        if(savedInstanceState == null){
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_3_0, this, mCallBack);
+            Log.d("MYAPPBluetooth", "Iniciei");
+            // everything else that doesn't update UI
         }
 
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_3_0, this, mCallBack);
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
@@ -115,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public void onCameraViewStarted(int width, int height) {
-
+        mCalibrador.initMats();
     }
 
     @Override
@@ -133,5 +146,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         else {
            return mCalibrador.processar(inputFrame.rgba(), inputFrame.gray());
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        finish();
+        super.onBackPressed();
     }
 }

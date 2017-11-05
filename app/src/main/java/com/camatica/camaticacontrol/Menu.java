@@ -9,12 +9,13 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
 public class Menu extends AppCompatActivity {
-
+    long time = System.currentTimeMillis();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -35,11 +36,16 @@ public class Menu extends AppCompatActivity {
         calibrar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(Menu.this, MainActivity.class);
-                Bundle b = new Bundle();
-                b.putBoolean("Calibrar",true);
-                intent.putExtras(b);
-                startActivity(intent);
+                if(System.currentTimeMillis()>time+1000) {
+                    time = System.currentTimeMillis();
+                    Intent intent;
+                    intent = new Intent(Menu.this, MainActivity.class);
+                    Bundle b = new Bundle();
+                    b.putBoolean("Calibrar", true);
+                    intent.putExtras(b);
+                    Log.d("MYAPPBluetooth", "Comecei");
+                    startActivity(intent);
+                }
             }
         });
         Button manual = findViewById(R.id.button_Manual);
