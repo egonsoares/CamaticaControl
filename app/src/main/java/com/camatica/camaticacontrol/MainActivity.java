@@ -1,12 +1,12 @@
 package com.camatica.camaticacontrol;
 
 import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -24,8 +24,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private static final String TAG = "MYAPP::OPENCV";
     private boolean startMats = true;
     int i = 0;
-    private final Calibrador mCalibrador = new Calibrador();
+    private Calibrador mCalibrador;
     private CameraBridgeViewBase mOpenCvCameraView;
+    SharedPreferences sharedPreferences;
 
 
 
@@ -80,11 +81,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             // everything else that doesn't update UI
         }
 
-
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
-
+        mCalibrador = new Calibrador(getApplicationContext(), sharedPreferences);
 
         Bundle b = getIntent().getExtras();
         if(b != null) {
@@ -118,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         super.onDestroy();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
+        if (mCalibrador != null)
+            mCalibrador.resetConnection();
     }
 
     @Override

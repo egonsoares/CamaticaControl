@@ -1,9 +1,10 @@
 package com.camatica.camaticacontrol;
 
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
@@ -15,7 +16,6 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
@@ -33,10 +33,19 @@ import static org.opencv.core.CvType.CV_8UC4;
 
 class Calibrador {
     private static final String TAG = "MYAPP::OPENCV";
-
+    private Context context;
     Scalar colorUpper = new Scalar(0, 0, 0);
     Scalar colorLower = new Scalar(255, 255, 255);
     private boolean feito = false;
+    private static final String KEYUPPER1 = "colorUpper1";
+    private static final String KEYUPPER2 = "colorUpper2";
+    private static final String KEYUPPER3 = "colorUpper3";
+    private static final String KEYLower1 = "colorLower1";
+    private static final String KEYLower2 = "colorLower2";
+    private static final String KEYLower3 = "colorLower3";
+    private SharedPreferences sharedPreferences;
+
+
 
     private BluetoothSocket btSocket = null;
     //SPP UUID. Look for it
@@ -55,6 +64,22 @@ class Calibrador {
     private Scalar lowerB = new Scalar(0,0,0), upperB = new Scalar(255,255,255);
     private double lastScore = 0;
 
+    Calibrador(Context mainContext, SharedPreferences mainSharedPreferences) {
+        context = mainContext;
+        sharedPreferences = mainSharedPreferences;
+    }
+
+    void resetConnection() {
+        if (btSocket != null) {
+            try {
+                btSocket.getOutputStream().close();
+            } catch (IOException ignored) {
+            }
+            try {btSocket.close();} catch (Exception ignored) {}
+            btSocket = null;
+        }
+
+    }
 
     private class ConnectBT extends AsyncTask<Void, Void, Void>  // UI thread
     {
@@ -78,12 +103,19 @@ class Calibrador {
                             }
                         }
                         UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb"); //Standard //SerialPortService ID
-                        btSocket = dispositivo.createRfcommSocketToServiceRecord(uuid);
-                        BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                        btSocket.connect();
+                        if (dispositivo != null) {
+                            btSocket = dispositivo.createRfcommSocketToServiceRecord(uuid);
+                            BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+                            btSocket.connect();
+                            Toast.makeText(context, "Bluetooth encontrado", Toast.LENGTH_SHORT).show();
+                        }
+                        else {
+                            Toast.makeText(context, "Bluetooth não encontrado", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 } catch (IOException e) {
                     Log.d("MYAPPBT", "Falhou", e);
+                    Toast.makeText(context, "Bluetooth não encontrado", Toast.LENGTH_SHORT).show();
                 }
                 return null;
             }
@@ -205,10 +237,18 @@ class Calibrador {
                 for(int i = 0; i < 3; i++) aux[i] = Math.min(lowerB.val[i],
                         aux[i]);
                 colorLower = new Scalar(aux);
+                /*Para armazenar um valor*/
+                sharedPreferences.edit().putInt(KEYLower1 , (int)(aux[0])).apply();
+                sharedPreferences.edit().putInt(KEYLower2 , (int)(aux[1])).apply();
+                sharedPreferences.edit().putInt(KEYLower3 , (int)(aux[2])).apply();
                 aux = colorUpper.val;
                 for(int i = 0; i < 3; i++) aux[i] = Math.max(upperB.val[i],
                         aux[i]);
                 colorUpper = new Scalar(aux);
+                /*Para armazenar um valor*/
+                sharedPreferences.edit().putInt(KEYUPPER1 , (int)(aux[0])).apply();
+                sharedPreferences.edit().putInt(KEYUPPER2 , (int)(aux[1])).apply();
+                sharedPreferences.edit().putInt(KEYUPPER3 , (int)(aux[2])).apply();
                 lowerB = new Scalar(0,0,0);
                 upperB = new Scalar(255,255,255);
                 calib++;
@@ -258,16 +298,16 @@ class Calibrador {
                 }
             }
             centerPoint.set(new double[]{(M.get_m10() / M.get_m00()),(M.get_m01() / M.get_m00())});
-
+            int w = inv.width();
+            int h = inv.height();
             // Só continuar se o raio do círculo for maior que 10
-            if (radius[0] > 50) {
+            if (radius[0] > 50 && !(centerPoint.x < w*0.6 && centerPoint.x > w * 0.4
+                    && centerPoint.y < h * 0.6 && centerPoint.y > h * 0.4)) {
                 // Desenhar círculo e centroide
                 Imgproc.circle(inv, centerPoint,(int)(radius[0]),
                         new Scalar(0,255,255),2);
                 Imgproc.circle(inv, centerPoint, 5, new Scalar(0, 0, 255), -1);
                 int x = 0;
-                int w = inv.width();
-                int h = inv.height();
                 if (centerPoint.x>w/2) x++;
                 if (centerPoint.y>h/2) x+=2;
                 Rect roi = new Rect(new Point(quadrantes[x][0]*w/100, quadrantes[x][2]*h/100),
